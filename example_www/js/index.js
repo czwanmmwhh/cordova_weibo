@@ -35,4 +35,17 @@ var app = function () {
       alert(failReason);
     });
   }
+  this.weiboCommon = function () {
+    var url = "https://api.weibo.com/2/statuses/friends_timeline/ids.json";
+    var type = "GET";
+    var args = {
+        count : 10
+    };
+    YCWeibo.weiboCommon(function(res){
+      alert('success . res : ' + JSON.stringify(res));
+    },function(failReason){
+      alert(failReason);
+    },url,type,args);
+  };
+
 }
