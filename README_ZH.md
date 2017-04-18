@@ -74,6 +74,19 @@ YCWeibo.checkClientInstalled(function(){
 	console.log('client is not installed');
 });
 ```
+### 微博通用接口
+```Javascript
+var url = "https://api.weibo.com/2/statuses/user_timeline/ids.json";
+var method = "GET";
+var args = {
+     count : 10
+};
+YCWeibo.weiboCommon(function(res){
+    alert("result : " + JSON.stringify(res))
+},function(err){
+    alert("fail:" + err);
+},url,method,args);
+```
 # 测试Demo
 在安装完这个插件以后，把 cordova 工程中的代码替换为 example_www中的代码，在build以后可以进行各个功能测试，以下为运行效果图：
 <div style="text-align:center"><img src="https://github.com/iVanPan/cordova_weibo/blob/master/ScreenShot.png?raw=true" alt="example" style="width:300px"></div>		
