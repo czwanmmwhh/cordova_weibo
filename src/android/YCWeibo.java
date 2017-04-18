@@ -27,6 +27,8 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Date;
+import java.util.Iterator;
 
 public class YCWeibo extends CordovaPlugin {
 
@@ -43,6 +45,7 @@ public class YCWeibo extends CordovaPlugin {
     private static final String ERROR_IMAGE_URL = "share image url is incorrect";
     private static final String WEIBO_CLIENT_NOT_INSTALLED = "weibo client is not installed";
     private static final String DEFAULT_WEBPAGE_ICON = "http://www.sinaimg.cn/blog/developer/wiki/LOGO_64x64.png";
+    private static final String TOKEN_TIMEOUT = "token timeout";
     public static CallbackContext currentCallbackContext;
     public static String APP_KEY;
     public static IWeiboShareAPI mWeiboShareAPI = null;
@@ -68,6 +71,8 @@ public class YCWeibo extends CordovaPlugin {
             return shareToWeibo(callbackContext, args);
         } else if (action.equalsIgnoreCase("checkClientInstalled")) {
             return checkClientInstalled(callbackContext);
+        } else if(action.equalsIgnoreCase("weiboCommon")){
+            return weiboCommon(callbackContext,args);
         }
         return super.execute(action, args, callbackContext);
     }
@@ -93,6 +98,72 @@ public class YCWeibo extends CordovaPlugin {
         }
         return jo;
     }
+
+    /**
+     * 组装 url args
+     * @param args
+     * @return
+     * @throws Exception
+     */
+
+    private String makeArgs(JSONObject args) throws Exception{
+        StringBuffer argSB = new StringBuffer();
+        Iterator<String> keys = args.keys();
+        while(keys.hasNext()){
+            String key = keys.next();
+            if(argSB.length() > 0)argSB.append("&");
+            argSB.append(key);
+            argSB.append("=");
+            argSB.append(args.getString(key));
+        }
+        return argSB.toString();
+    }
+
+    /**
+     * weibo oAuth common 接口实现
+     * @param callbackContext
+     * @param args
+     * @return
+     */
+
+    private boolean weiboCommon(CallbackContext callbackContext ,JSONArray args) throws JSONException {
+        currentCallbackContext = callbackContext;
+
+        String url = args.getString(0);
+        String type = args.getString(1);
+
+        Oauth2AccessToken token = AccessTokenKeeper.readAccessToken(YCWeibo.this.cordova
+                .getActivity());
+        long expiresTime = token.getExpiresTime();
+        if(expiresTime < new Date().getTime()){
+            callbackContext.error(TOKEN_TIMEOUT);
+        }
+
+        StringBuffer argSB = new StringBuffer();
+        argSB.append("access_token").append("=").append(token.getToken());
+        if(args.length() > 2){
+            JSONObject urlArgs = args.getJSONObject(2);
+            try{
+                String otherArg = makeArgs(urlArgs);
+                argSB.append("&").append(otherArg);
+            }catch (Exception e){
+                e.printStackTrace();
+                callbackContext.error(WEIBO_EXCEPTION);
+            }
+        }
+
+        String responseStr = null;
+        if(type.equalsIgnoreCase("post")){
+            responseStr = Connection.sendPost(url,argSB.toString());
+        }else{
+            responseStr = Connection.sendGet(url,argSB.toString());
+        }
+
+        callbackContext.success(new JSONObject(responseStr));
+        JSONObject jo = new JSONObject();
+
+        return true;
+    };
 
     /**
      * weibo sso 登录
