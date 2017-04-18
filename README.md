@@ -74,6 +74,19 @@ YCWeibo.checkClientInstalled(function(){
     console.log('client is not installed');
 });
 ```
+### weiboCommon
+```Javascript
+var url = "https://api.weibo.com/2/statuses/user_timeline/ids.json";
+var method = "GET";
+var args = {
+     count : 10
+};
+YCWeibo.weiboCommon(function(res){
+    alert("result : " + JSON.stringify(res))
+},function(err){
+    alert("fail:" + err);
+},url,method,args);
+```
 
 ## Example			
 1. install this plugin
