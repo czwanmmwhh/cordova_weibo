@@ -10,6 +10,7 @@ NSString *WEIBO_UNSPPORTTED = @"Weibo unspport";
 NSString *WEIBO_AUTH_ERROR = @"Weibo auth error";
 NSString *WEIBO_UNKNOW_ERROR = @"Weibo unknow error";
 NSString *WEIBO_USER_CANCEL_INSTALL = @"user cancel install weibo";
+NSString *WEIBO_RESPONSE_IS_NULL = @"Weibo response is null";
 
 @implementation YCWeibo
 /**
@@ -122,6 +123,42 @@ NSString *WEIBO_USER_CANCEL_INSTALL = @"user cancel install weibo";
     }
 }
 
+
+/**
+ * weibo oAuth common 接口实现
+ * @param CDVInvokedUrlCommand *command
+ */
+
+-(void)weiboCommon:(CDVInvokedUrlCommand *)command{
+    self.callback = command.callbackId;
+    
+    NSUserDefaults *saveDefaults = [NSUserDefaults standardUserDefaults];
+    NSString *expirationTime = [saveDefaults objectForKey:@"expires_time"];
+    long long expirationTime_long = [expirationTime longLongValue];
+    NSDate *date = [NSDate date];
+    NSTimeInterval time = [date timeIntervalSince1970];
+    long long longTime = [[NSNumber numberWithDouble:time] longLongValue] * 1000;
+    
+    if(expirationTime_long < longTime){
+        CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR];
+        [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
+        return;
+    }
+    
+    NSString *token = [saveDefaults objectForKey:@"access_token"];
+    
+    NSArray *args = [command arguments];
+    NSString *url = [args objectAtIndex:0];
+    NSString *method = [args objectAtIndex:1];
+    NSDictionary *param = nil;
+    if([args count] > 2){
+        param = [[command arguments]objectAtIndex:2];
+    }
+    
+    [WBHttpRequest requestWithAccessToken:token url:url httpMethod:method params:param delegate:self withTag:@"tag"];
+    
+}
+
 /**
  *  处理URL
  *
@@ -133,6 +170,24 @@ NSString *WEIBO_USER_CANCEL_INSTALL = @"user cancel install weibo";
     if ([url isKindOfClass:[NSURL class]] && [url.absoluteString hasPrefix:[wb stringByAppendingString:self.weiboAppId]]) {
         [WeiboSDK handleOpenURL:url delegate:self];
     }
+}
+
+- (void)request:(WBHttpRequest *)request didFinishLoadingWithResult:(NSString *)result
+{
+    NSError *error;
+    NSData  *data = [result dataUsingEncoding:NSUTF8StringEncoding];
+    NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:&error];
+    
+    if (json == nil)
+    {
+        NSLog(@"json parse failed \r\n");
+        CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:WEIBO_RESPONSE_IS_NULL];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:self.callback];
+        return;
+    }
+    
+    CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:json];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:self.callback];
 }
 
 #pragma mark - WeiboSDKDelegate
